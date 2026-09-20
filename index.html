@@ -72,7 +72,7 @@
       <!-- INFOS COMPTE & DÉCONNEXION -->
       <div class="flex items-center gap-3 bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-800 text-xs">
         <span class="text-gray-400">Connecté : <strong id="logged-user-name" class="text-cyan-400 uppercase">...</strong></span>
-        <button onclick="logout()" class="bg-gray-800 hover:bg-rose-600/20 text-gray-300 hover:text-rose-400 border border-gray-700 px-2 py-1 rounded text-xs transition">
+        <button onclick="logout()" class="bg-gray-800 hover:bg-rose-600/20 text-gray-300 hover:text-rose-400 border border-gray-700 px-2 py-1 rounded text-xs transition" title="Déconnexion">
           <i class="fa-solid fa-right-from-bracket"></i>
         </button>
       </div>
@@ -135,11 +135,11 @@
 
     <!-- SECTION CLASSEMENT -->
     <section id="sec-leaderboard" class="tab-content hidden">
-      <h2 class="text-2xl font-bold mb-4">Classement Général de la Saison</h2>
+      <h2 class="text-2xl font-bold mb-4">Classement Général - Saison en cours</h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div class="bg-rlCard border border-yellow-500/30 rounded-2xl p-5 text-center relative overflow-hidden shadow-lg">
           <div class="text-3xl mb-1">🥇</div>
-          <div class="font-bold text-xl">Noah <span class="text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 px-1.5 py-0.5 rounded">Champion</span></div>
+          <div class="font-bold text-xl">Noah</div>
           <div id="score-noah" class="text-3xl font-black text-cyan-400 mt-2">0 pts</div>
         </div>
         <div class="bg-rlCard border border-gray-800 rounded-2xl p-5 text-center shadow-lg">
@@ -158,14 +158,14 @@
     <!-- SECTION HISTORIQUE -->
     <section id="sec-history" class="tab-content hidden">
       <h2 class="text-2xl font-bold mb-4">🏆 Hall of Fame</h2>
-      <div class="bg-rlCard border border-gray-800 rounded-2xl p-6 shadow-xl max-w-xl mx-auto text-center">
-        <h3 class="text-lg font-bold text-amber-400 mb-6">Saison Précédente (2025/2026)</h3>
-        <div class="flex justify-center items-end gap-4">
-          <div class="w-1/3"><span class="font-bold text-gray-300">Nathan</span> (96 pts)<div class="bg-gray-700 h-24 rounded-t-lg mt-2 flex items-center justify-center font-bold text-xl">2</div></div>
-          <div class="w-1/3"><span class="font-bold text-yellow-400">Noah 🥇</span> (103.5 pts)<div class="bg-yellow-600/30 border-t-2 border-yellow-400 h-36 rounded-t-lg mt-2 flex items-center justify-center font-bold text-2xl text-yellow-400">1</div></div>
-          <div class="w-1/3"><span class="font-bold text-gray-300">Liam</span> (67 pts)<div class="bg-gray-800 h-16 rounded-t-lg mt-2 flex items-center justify-center font-bold text-lg text-amber-600">3</div></div>
-        </div>
+      
+      <!-- SÉLECTEUR DE SAISON DANS L'HISTORIQUE -->
+      <div class="flex justify-end mb-4">
+        <select id="history-season-select" onchange="renderHistory()" class="bg-rlCard border border-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none font-semibold">
+        </select>
       </div>
+
+      <div id="history-container"></div>
     </section>
 
     <!-- SECTION ADMIN -->
@@ -192,6 +192,21 @@
           </select>
           <button onclick="grantTemporaryAdmin()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition">
             Accorder la permission
+          </button>
+        </div>
+      </div>
+
+      <!-- GESTION DE LA SAISON (NOAH ONLY) -->
+      <div id="season-management-controls" class="bg-rlCard border border-purple-500/40 rounded-xl p-5 mb-6 shadow-lg">
+        <h3 class="font-bold text-lg mb-2 text-white flex items-center gap-2">
+          <i class="fa-solid fa-box-archive text-purple-400"></i> Clôturer & Archiver la saison actuelle
+        </h3>
+        <p class="text-xs text-gray-400 mb-4">Sauvegarde le classement actuel dans l'Historique sous le nom de saison indiqué, puis réinitialise les tournois pour la nouvelle saison.</p>
+        
+        <div class="flex flex-wrap gap-3 items-center">
+          <input type="text" id="archive-season-name" placeholder="Nom ex: Saison 2026" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+          <button onclick="archiveCurrentSeason()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition">
+            Archiver la saison
           </button>
         </div>
       </div>
@@ -232,6 +247,7 @@
     let currentUser = localStorage.getItem('rlcs_logged_user') || null;
     let userAccounts = {};
     let tournaments = [];
+    let historySeasons = [];
     let adminPermissions = {};
 
     async function initData() {
@@ -239,6 +255,7 @@
       checkAuthStatus();
       await loadAdminPermissions();
       await loadTournaments();
+      await loadHistory();
       updateAdminVisibility();
     }
 
@@ -267,7 +284,7 @@
       const pwdInput = document.getElementById('login-password').value;
 
       if (!userAccounts[selectedUser]) {
-        alert("Comptes non initialisés. Exécutez le script SQL dans Supabase !");
+        alert("Comptes non initialisés.");
         return;
       }
 
@@ -320,6 +337,22 @@
       updateLeaderboard();
     }
 
+    async function loadHistory() {
+      const { data } = await db.from('history_seasons').select('*').order('created_at', { ascending: false });
+      
+      // Données par défaut si aucune saison enregistrée
+      const defaultHistory = [
+        {
+          season_name: "Saison 2025",
+          scores: { nathan: 103.5, noah: 96, liam: 67 }
+        }
+      ];
+
+      historySeasons = (data && data.length > 0) ? data : defaultHistory;
+      renderHistorySelect();
+      renderHistory();
+    }
+
     async function loadAdminPermissions() {
       const { data } = await db.from('admin_permissions').select('*');
       adminPermissions = {};
@@ -337,13 +370,16 @@
     function updateAdminVisibility() {
       const adminTab = document.getElementById('tab-admin');
       const masterControls = document.getElementById('master-admin-controls');
+      const seasonControls = document.getElementById('season-management-controls');
       
       if (isAdmin()) {
         adminTab.classList.remove('hidden');
         if (currentUser === 'noah') {
           masterControls.classList.remove('hidden');
+          seasonControls.classList.remove('hidden');
         } else {
           masterControls.classList.add('hidden');
+          seasonControls.classList.add('hidden');
         }
       } else {
         adminTab.classList.add('hidden');
@@ -415,6 +451,15 @@
         await loadTournaments();
         alert("Match ajouté !");
       }
+    }
+
+    async function deleteMatch(matchId) {
+      if (!isAdmin()) return;
+      if (!confirm("Voulez-vous vraiment supprimer ce match ?")) return;
+
+      await db.from('predictions').delete().eq('match_id', matchId);
+      await db.from('matches').delete().eq('id', matchId);
+      await loadTournaments();
     }
 
     async function setPrediction(matchId, user, score) {
@@ -503,13 +548,21 @@
               </div>
             </div>
 
-            <!-- Score Réel -->
-            <div class="flex items-center gap-2 bg-gray-900 px-3 py-1.5 rounded-lg border border-gray-800">
-              <span class="text-xs text-gray-400 font-bold">Résultat :</span>
-              <input type="text" placeholder="3-1" value="${m.realScore || ''}" 
-                ${!isAdmin() ? 'disabled' : ''}
-                onchange="setRealScore('${m.id}', this.value)"
-                class="w-12 text-center bg-gray-800 border border-gray-700 rounded text-sm font-bold text-yellow-400 focus:outline-none ${!isAdmin() ? 'opacity-60 cursor-not-allowed' : ''}">
+            <!-- Score Réel & Supprimer -->
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-2 bg-gray-900 px-3 py-1.5 rounded-lg border border-gray-800">
+                <span class="text-xs text-gray-400 font-bold">Résultat :</span>
+                <input type="text" placeholder="3-1" value="${m.realScore || ''}" 
+                  ${!isAdmin() ? 'disabled' : ''}
+                  onchange="setRealScore('${m.id}', this.value)"
+                  class="w-12 text-center bg-gray-800 border border-gray-700 rounded text-sm font-bold text-yellow-400 focus:outline-none ${!isAdmin() ? 'opacity-60 cursor-not-allowed' : ''}">
+              </div>
+
+              ${isAdmin() ? `
+                <button onclick="deleteMatch('${m.id}')" class="text-gray-500 hover:text-rose-500 transition p-1.5" title="Supprimer le match">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              ` : ''}
             </div>
 
             <div class="grid grid-cols-3 gap-3">${inputsHtml}</div>
@@ -518,7 +571,7 @@
       }).join('');
     }
 
-    function updateLeaderboard() {
+    function calculateCurrentTotals() {
       let totals = { noah: 0, nathan: 0, liam: 0 };
       tournaments.forEach(t => {
         t.matches.forEach(m => {
@@ -529,9 +582,84 @@
           }
         });
       });
+      return totals;
+    }
+
+    function updateLeaderboard() {
+      const totals = calculateCurrentTotals();
       document.getElementById('score-noah').innerText = totals.noah + ' pts';
       document.getElementById('score-nathan').innerText = totals.nathan + ' pts';
       document.getElementById('score-liam').innerText = totals.liam + ' pts';
+    }
+
+    function renderHistorySelect() {
+      const select = document.getElementById('history-season-select');
+      select.innerHTML = historySeasons.map((s, idx) => `<option value="${idx}">${s.season_name}</option>`).join('');
+    }
+
+    function renderHistory() {
+      const select = document.getElementById('history-season-select');
+      const container = document.getElementById('history-container');
+      
+      if (!historySeasons || historySeasons.length === 0) {
+        container.innerHTML = `<div class="text-center text-gray-400 py-8">Aucun historique disponible.</div>`;
+        return;
+      }
+
+      const season = historySeasons[select.value || 0];
+      const scores = season.scores || {};
+
+      // Trier les joueurs du score le plus élevé au plus bas
+      const sorted = Object.keys(scores).map(u => ({ user: u, pts: scores[u] })).sort((a,b) => b.pts - a.pts);
+
+      container.innerHTML = `
+        <div class="bg-rlCard border border-gray-800 rounded-2xl p-6 shadow-xl max-w-xl mx-auto text-center">
+          <h3 class="text-lg font-bold text-amber-400 mb-6">${season.season_name}</h3>
+          <div class="flex justify-center items-end gap-4">
+            <!-- 2ème place -->
+            <div class="w-1/3">
+              <span class="font-bold text-gray-300 capitalize">${sorted[1]?.user || '-'}</span> (${sorted[1]?.pts || 0} pts)
+              <div class="bg-gray-700 h-24 rounded-t-lg mt-2 flex items-center justify-center font-bold text-xl">2</div>
+            </div>
+            <!-- 1ère place -->
+            <div class="w-1/3">
+              <span class="font-bold text-yellow-400 capitalize">${sorted[0]?.user || '-'} 🥇</span> (${sorted[0]?.pts || 0} pts)
+              <div class="bg-yellow-600/30 border-t-2 border-yellow-400 h-36 rounded-t-lg mt-2 flex items-center justify-center font-bold text-2xl text-yellow-400">1</div>
+            </div>
+            <!-- 3ème place -->
+            <div class="w-1/3">
+              <span class="font-bold text-gray-300 capitalize">${sorted[2]?.user || '-'}</span> (${sorted[2]?.pts || 0} pts)
+              <div class="bg-gray-800 h-16 rounded-t-lg mt-2 flex items-center justify-center font-bold text-lg text-amber-600">3</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function archiveCurrentSeason() {
+      if (currentUser !== 'noah') return;
+      const seasonName = document.getElementById('archive-season-name').value.trim();
+      if (!seasonName) return alert("Veuillez entrer un nom de saison (ex: Saison 2026)");
+
+      if (!confirm(`Voulez-vous vraiment clôturer la saison actuelle et l'enregistrer sous "${seasonName}" ? Les tournois actuels seront réinitialisés.`)) return;
+
+      const currentTotals = calculateCurrentTotals();
+
+      // Sauvegarder dans la table history_seasons
+      await db.from('history_seasons').insert([{
+        season_name: seasonName,
+        scores: currentTotals
+      }]);
+
+      // Supprimer les tournois/matchs/pronostics actuels pour repartir à zéro
+      await db.from('predictions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await db.from('matches').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await db.from('tournaments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+      document.getElementById('archive-season-name').value = '';
+      await loadTournaments();
+      await loadHistory();
+      alert("Saison archivée avec succès ! La nouvelle saison est prête.");
     }
 
     function updateAdminSelects() {
