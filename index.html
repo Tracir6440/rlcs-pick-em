@@ -106,15 +106,15 @@
       <div class="flex items-center gap-4 flex-wrap">
         <div class="flex items-center gap-1.5">
           <span class="w-3.5 h-3.5 rounded bg-predictBlue inline-block shadow-sm"></span>
-          <span>Score Exact = <strong class="text-cyan-400">3 pts</strong></span>
+          <span>Exact / Position = <strong class="text-cyan-400">3 pts</strong></span>
         </div>
         <div class="flex items-center gap-1.5">
           <span class="w-3.5 h-3.5 rounded bg-predictGreen inline-block shadow-sm"></span>
-          <span>Bon Vainqueur = <strong class="text-emerald-400">1 pt</strong></span>
+          <span>Vainqueur / Zone = <strong class="text-emerald-400">1 pt</strong></span>
         </div>
         <div class="flex items-center gap-1.5">
           <span class="w-3.5 h-3.5 rounded bg-predictRed inline-block shadow-sm"></span>
-          <span>Mauvais Prono = <strong class="text-rose-400">0 pt</strong></span>
+          <span>Faux = <strong class="text-rose-400">0 pt</strong></span>
         </div>
       </div>
     </div>
@@ -123,13 +123,18 @@
     <section id="sec-tournaments" class="tab-content">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h2 class="text-2xl font-bold">Pronostics des Matchs</h2>
-          <p class="text-sm text-gray-400">Pronostics masqués tant que le résultat n'est pas saisi !</p>
+          <h2 class="text-2xl font-bold">Tournoi sélectionné</h2>
+          <p class="text-sm text-gray-400">Fais tes pronostics pour les matchs et les classements de poules !</p>
         </div>
         <select id="tournament-select" onchange="renderMatches()" class="bg-rlCard border border-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-cyan-500 font-semibold">
         </select>
       </div>
 
+      <!-- CONTENEUR DES GROUPES / POULES -->
+      <div id="groups-container" class="space-y-6 mb-8"></div>
+
+      <!-- CONTENEUR DES MATCHS -->
+      <h3 class="text-xl font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-list-check text-blue-500"></i> Matchs du Tournoi</h3>
       <div id="matches-container" class="space-y-4"></div>
     </section>
 
@@ -158,13 +163,10 @@
     <!-- SECTION HISTORIQUE -->
     <section id="sec-history" class="tab-content hidden">
       <h2 class="text-2xl font-bold mb-4">🏆 Hall of Fame</h2>
-      
-      <!-- SÉLECTEUR DE SAISON DANS L'HISTORIQUE -->
       <div class="flex justify-end mb-4">
         <select id="history-season-select" onchange="renderHistory()" class="bg-rlCard border border-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none font-semibold">
         </select>
       </div>
-
       <div id="history-container"></div>
     </section>
 
@@ -201,7 +203,7 @@
         <h3 class="font-bold text-lg mb-2 text-white flex items-center gap-2">
           <i class="fa-solid fa-box-archive text-purple-400"></i> Clôturer & Archiver la saison actuelle
         </h3>
-        <p class="text-xs text-gray-400 mb-4">Sauvegarde le classement actuel dans l'Historique sous le nom de saison indiqué, puis réinitialise les tournois pour la nouvelle saison.</p>
+        <p class="text-xs text-gray-400 mb-4">Sauvegarde le classement actuel dans l'Historique puis réinitialise pour la nouvelle saison.</p>
         
         <div class="flex flex-wrap gap-3 items-center">
           <input type="text" id="archive-season-name" placeholder="Nom ex: Saison 2026" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
@@ -211,18 +213,35 @@
         </div>
       </div>
 
-      <!-- CRÉER TOURNOI & MATCHS -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- CRÉER TOURNOI, GROUPE & MATCHS -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- 1. Tournoi -->
         <div class="bg-rlCard border border-gray-800 rounded-xl p-5">
           <h3 class="font-bold text-lg mb-3">1. Nouveau tournoi</h3>
           <div class="flex gap-2">
-            <input type="text" id="new-tournament-name" placeholder="Ex: Open 3, Major Paris..." class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm w-full">
+            <input type="text" id="new-tournament-name" placeholder="Ex: Major Paris..." class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm w-full">
             <button onclick="addTournament()" class="bg-cyan-600 hover:bg-cyan-500 font-bold px-4 py-2 rounded-lg text-sm">Créer</button>
           </div>
         </div>
 
+        <!-- 2. Poule / Groupe -->
         <div class="bg-rlCard border border-gray-800 rounded-xl p-5">
-          <h3 class="font-bold text-lg mb-3">2. Nouveau match</h3>
+          <h3 class="font-bold text-lg mb-3">2. Nouvelle Poule/Groupe</h3>
+          <div class="space-y-2">
+            <select id="admin-group-tournament-select" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm"></select>
+            <input type="text" id="group-name" placeholder="Nom du groupe (ex: Groupe A)" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm">
+            <input type="text" id="group-teams" placeholder="Équipes séparées par des virgules (ex: KC, FAL, SSG, MIBR)" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm">
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-gray-400">Nb Qualifiés :</span>
+              <input type="number" id="group-qual-count" value="2" min="1" class="w-16 bg-gray-900 border border-gray-700 rounded-lg px-2 py-1 text-sm text-center">
+            </div>
+            <button onclick="addGroup()" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold py-2 rounded-lg text-sm mt-2">Créer le Groupe</button>
+          </div>
+        </div>
+
+        <!-- 3. Match -->
+        <div class="bg-rlCard border border-gray-800 rounded-xl p-5">
+          <h3 class="font-bold text-lg mb-3">3. Nouveau match</h3>
           <div class="space-y-2">
             <select id="admin-tournament-select" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm"></select>
             <div class="flex gap-2">
@@ -240,7 +259,6 @@
 
   <script>
     const SUPABASE_URL = "https://urmhcaqgftxzkoxabyqi.supabase.co";
-    // Remplace par ta vraie SUPABASE_KEY (anon key eyJ...)
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVybWhjYXFnZnR4emtveGFieXFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4MDYxOTUsImV4cCI6MjEwNTM4MjE5NX0.ToCVIUQpg4f3kyuL3zQTl2w1onV1Oo2qwQeHSRglOsQ"; 
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -262,15 +280,12 @@
     async function loadAccounts() {
       const { data } = await db.from('users').select('*');
       userAccounts = {};
-      (data || []).forEach(u => {
-        userAccounts[u.username] = u.password;
-      });
+      (data || []).forEach(u => { userAccounts[u.username] = u.password; });
     }
 
     function checkAuthStatus() {
       const modal = document.getElementById('login-modal');
       const nameElem = document.getElementById('logged-user-name');
-
       if (currentUser && userAccounts[currentUser]) {
         modal.classList.add('hidden');
         nameElem.innerText = currentUser + (currentUser === 'noah' ? ' 🥇' : '');
@@ -282,11 +297,6 @@
     async function login() {
       const selectedUser = document.getElementById('login-user').value;
       const pwdInput = document.getElementById('login-password').value;
-
-      if (!userAccounts[selectedUser]) {
-        alert("Comptes non initialisés.");
-        return;
-      }
 
       if (userAccounts[selectedUser] === pwdInput) {
         currentUser = selectedUser;
@@ -310,26 +320,32 @@
       const { data: tourneys } = await db.from('tournaments').select('*').order('created_at', { ascending: true });
       const { data: matches } = await db.from('matches').select('*').order('created_at', { ascending: true });
       const { data: predictions } = await db.from('predictions').select('*');
+      const { data: groups } = await db.from('tournament_groups').select('*');
+      const { data: groupPreds } = await db.from('group_predictions').select('*');
 
       tournaments = (tourneys || []).map(t => {
         const tMatches = (matches || []).filter(m => m.tournament_id === t.id).map(m => {
           const mPreds = { noah: '', nathan: '', liam: '' };
-          
-          (predictions || []).filter(p => p.match_id === m.id).forEach(p => {
-            mPreds[p.user_name] = p.score_pred;
-          });
+          (predictions || []).filter(p => p.match_id === m.id).forEach(p => { mPreds[p.user_name] = p.score_pred; });
+          return { id: m.id, phase: m.phase, teamA: m.team_a, teamB: m.team_b, realScore: m.real_score, predictions: mPreds };
+        });
 
+        const tGroups = (groups || []).filter(g => g.tournament_id === t.id).map(g => {
+          const gPreds = { noah: null, nathan: null, liam: null };
+          (groupPreds || []).filter(gp => gp.group_id === g.id).forEach(gp => {
+            gPreds[gp.user_name] = gp.ranking_pred;
+          });
           return {
-            id: m.id,
-            phase: m.phase,
-            teamA: m.team_a,
-            teamB: m.team_b,
-            realScore: m.real_score,
-            predictions: mPreds
+            id: g.id,
+            name: g.name,
+            teams: g.teams || [],
+            qualifiersCount: g.qualifiers_count,
+            realRanking: g.real_ranking,
+            predictions: gPreds
           };
         });
 
-        return { id: t.id, name: t.name, matches: tMatches };
+        return { id: t.id, name: t.name, matches: tMatches, groups: tGroups };
       });
 
       updateAdminSelects();
@@ -339,15 +355,7 @@
 
     async function loadHistory() {
       const { data } = await db.from('history_seasons').select('*').order('created_at', { ascending: false });
-      
-      const defaultHistory = [
-        {
-          season_name: "Saison 2025",
-          scores: { nathan: 103.5, noah: 96, liam: 67 }
-        }
-      ];
-
-      historySeasons = (data && data.length > 0) ? data : defaultHistory;
+      historySeasons = (data && data.length > 0) ? data : [{ season_name: "Saison 2025", scores: { nathan: 103.5, noah: 96, liam: 67 } }];
       renderHistorySelect();
       renderHistory();
     }
@@ -355,36 +363,22 @@
     async function loadAdminPermissions() {
       const { data } = await db.from('admin_permissions').select('*');
       adminPermissions = {};
-      (data || []).forEach(p => {
-        adminPermissions[p.user_name] = new Date(p.expires_at).getTime();
-      });
+      (data || []).forEach(p => { adminPermissions[p.user_name] = new Date(p.expires_at).getTime(); });
     }
 
     function isAdmin() {
       if (currentUser === 'noah') return true;
-      const expiry = adminPermissions[currentUser] || 0;
-      return Date.now() < expiry;
+      return Date.now() < (adminPermissions[currentUser] || 0);
     }
 
     function updateAdminVisibility() {
       const adminTab = document.getElementById('tab-admin');
-      const masterControls = document.getElementById('master-admin-controls');
-      const seasonControls = document.getElementById('season-management-controls');
-      
       if (isAdmin()) {
         adminTab.classList.remove('hidden');
-        if (currentUser === 'noah') {
-          masterControls.classList.remove('hidden');
-          seasonControls.classList.remove('hidden');
-        } else {
-          masterControls.classList.add('hidden');
-          seasonControls.classList.add('hidden');
-        }
+        document.getElementById('master-admin-controls').classList.toggle('hidden', currentUser !== 'noah');
+        document.getElementById('season-management-controls').classList.toggle('hidden', currentUser !== 'noah');
       } else {
         adminTab.classList.add('hidden');
-        if (!document.getElementById('sec-admin').classList.contains('hidden')) {
-          switchTab('tournaments');
-        }
       }
     }
 
@@ -392,7 +386,6 @@
       const user = document.getElementById('grant-user').value;
       const hours = parseFloat(document.getElementById('grant-duration').value);
       const expiresAt = new Date(Date.now() + (hours * 3600 * 1000)).toISOString();
-
       await db.from('admin_permissions').upsert({ user_name: user, expires_at: expiresAt });
       await loadAdminPermissions();
       updateAdminVisibility();
@@ -405,7 +398,6 @@
         el.classList.remove('bg-blue-600', 'text-white', 'shadow');
         el.classList.add('text-gray-400');
       });
-
       document.getElementById('sec-' + tabId).classList.remove('hidden');
       const activeBtn = document.getElementById('tab-' + tabId);
       activeBtn.classList.add('bg-blue-600', 'text-white', 'shadow');
@@ -416,15 +408,41 @@
       const input = document.getElementById('new-tournament-name');
       const name = input.value.trim();
       if (!name) return alert("Entrez un nom de tournoi");
+      await db.from('tournaments').insert([{ name }]);
+      input.value = '';
+      await loadTournaments();
+      alert("Tournoi créé !");
+    }
 
-      const { error } = await db.from('tournaments').insert([{ name: name }]);
-      if (error) {
-        alert("Erreur : " + error.message);
-      } else {
-        input.value = '';
-        await loadTournaments();
-        alert("Tournoi créé !");
-      }
+    async function addGroup() {
+      const tourneyId = document.getElementById('admin-group-tournament-select').value;
+      const name = document.getElementById('group-name').value.trim();
+      const rawTeams = document.getElementById('group-teams').value.trim();
+      const qualCount = parseInt(document.getElementById('group-qual-count').value) || 2;
+
+      if (!tourneyId || !name || !rawTeams) return alert("Remplissez tous les champs du groupe.");
+
+      const teams = rawTeams.split(',').map(t => t.trim()).filter(t => t.length > 0);
+
+      await db.from('tournament_groups').insert([{
+        tournament_id: tourneyId,
+        name: name,
+        teams: teams,
+        qualifiers_count: qualCount
+      }]);
+
+      document.getElementById('group-name').value = '';
+      document.getElementById('group-teams').value = '';
+      await loadTournaments();
+      alert("Groupe créé !");
+    }
+
+    async function deleteGroup(groupId) {
+      if (!isAdmin()) return;
+      if (!confirm("Supprimer cette poule ?")) return;
+      await db.from('group_predictions').delete().eq('group_id', groupId);
+      await db.from('tournament_groups').delete().eq('id', groupId);
+      await loadTournaments();
     }
 
     async function addMatch() {
@@ -436,29 +454,16 @@
 
       if (!tourneyId || !teamA || !teamB) return alert("Remplissez les équipes");
 
-      const { error } = await db.from('matches').insert([{
-        tournament_id: tourneyId,
-        phase: phase,
-        team_a: teamA,
-        team_b: teamB
-      }]);
-
-      if (error) {
-        alert("Erreur : " + error.message);
-      } else {
-        document.getElementById('team-a').value = '';
-        document.getElementById('team-b').value = '';
-        await loadTournaments();
-        // Conserver la sélection du tournoi dans l'admin après le rechargement
-        if (tourneySelect) tourneySelect.value = tourneyId;
-        alert("Match ajouté !");
-      }
+      await db.from('matches').insert([{ tournament_id: tourneyId, phase, team_a: teamA, team_b: teamB }]);
+      document.getElementById('team-a').value = '';
+      document.getElementById('team-b').value = '';
+      await loadTournaments();
+      if (tourneySelect) tourneySelect.value = tourneyId;
+      alert("Match ajouté !");
     }
 
     async function deleteMatch(matchId) {
-      if (!isAdmin()) return;
-      if (!confirm("Voulez-vous vraiment supprimer ce match ?")) return;
-
+      if (!isAdmin() || !confirm("Supprimer ce match ?")) return;
       await db.from('predictions').delete().eq('match_id', matchId);
       await db.from('matches').delete().eq('id', matchId);
       await loadTournaments();
@@ -466,29 +471,35 @@
 
     async function setPrediction(matchId, user, score) {
       if (user !== currentUser) return;
-
-      await db.from('predictions').upsert({
-        match_id: matchId,
-        user_name: user,
-        score_pred: score
-      }, { onConflict: 'match_id, user_name' });
-
+      await db.from('predictions').upsert({ match_id: matchId, user_name: user, score_pred: score }, { onConflict: 'match_id, user_name' });
       await loadTournaments();
     }
 
     async function setRealScore(matchId, score) {
       if (!isAdmin()) return;
-
       await db.from('matches').update({ real_score: score }).eq('id', matchId);
+      await loadTournaments();
+    }
+
+    async function saveGroupPrediction(groupId, rankingArray) {
+      await db.from('group_predictions').upsert({
+        group_id: groupId,
+        user_name: currentUser,
+        ranking_pred: rankingArray
+      }, { onConflict: 'group_id, user_name' });
+      await loadTournaments();
+    }
+
+    async function setRealGroupRanking(groupId, rankingArray) {
+      if (!isAdmin()) return;
+      await db.from('tournament_groups').update({ real_ranking: rankingArray }).eq('id', groupId);
       await loadTournaments();
     }
 
     function evaluatePrediction(pred, real) {
       if (!pred || !real) return { pts: 0, colorClass: 'bg-gray-800 border-gray-700 text-gray-300' };
-
       const [pA, pB] = pred.split('-').map(Number);
       const [rA, rB] = real.split('-').map(Number);
-
       if (isNaN(pA) || isNaN(pB) || isNaN(rA) || isNaN(rB)) return { pts: 0, colorClass: 'bg-gray-800 border-gray-700 text-gray-300' };
 
       const predWinner = pA > pB ? 'A' : 'B';
@@ -499,12 +510,56 @@
       return { pts: 0, colorClass: 'bg-predictRed/20 border-rose-500 text-rose-300' };
     }
 
+    function evaluateTeamGroupRank(team, userRank, realRank, qualCount) {
+      if (!realRank || !userRank) return { pts: 0, colorClass: 'bg-gray-800 border-gray-700 text-gray-300' };
+
+      const userPos = userRank.indexOf(team);
+      const realPos = realRank.indexOf(team);
+
+      if (userPos === -1 || realPos === -1) return { pts: 0, colorClass: 'bg-gray-800 border-gray-700 text-gray-300' };
+
+      const isUserQual = userPos < qualCount;
+      const isRealQual = realPos < qualCount;
+
+      if (userPos === realPos) {
+        return { pts: 3, colorClass: 'bg-cyan-500/30 text-cyan-300 font-bold border-cyan-500' };
+      } else if (isUserQual === isRealQual) {
+        return { pts: 1, colorClass: 'bg-emerald-500/30 text-emerald-300 font-bold border-emerald-500' };
+      } else {
+        return { pts: 0, colorClass: 'bg-rose-500/30 text-rose-300 border-rose-500' };
+      }
+    }
+
+    function moveTeamInList(group, user, index, direction) {
+      let currentList = [];
+      if (user === 'REAL_ADMIN') {
+        currentList = [...(group.realRanking || group.teams)];
+      } else {
+        currentList = [...(group.predictions[user] || group.teams)];
+      }
+
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= currentList.length) return;
+
+      const temp = currentList[index];
+      currentList[index] = currentList[newIndex];
+      currentList[newIndex] = temp;
+
+      if (user === 'REAL_ADMIN') {
+        setRealGroupRanking(group.id, currentList);
+      } else {
+        saveGroupPrediction(group.id, currentList);
+      }
+    }
+
     function renderMatches() {
-      const container = document.getElementById('matches-container');
+      const matchesContainer = document.getElementById('matches-container');
+      const groupsContainer = document.getElementById('groups-container');
       const select = document.getElementById('tournament-select');
       
       if (tournaments.length === 0) {
-        container.innerHTML = `<div class="bg-rlCard border border-gray-800 rounded-xl p-8 text-center text-gray-400">Aucun tournoi disponible. Créez-en un dans l'onglet Admin !</div>`;
+        groupsContainer.innerHTML = '';
+        matchesContainer.innerHTML = `<div class="bg-rlCard border border-gray-800 rounded-xl p-8 text-center text-gray-400">Aucun tournoi.</div>`;
         select.innerHTML = '<option>Aucun tournoi</option>';
         return;
       }
@@ -512,19 +567,108 @@
       const selectedId = select.value || tournaments[0].id;
       const tourney = tournaments.find(t => t.id === selectedId) || tournaments[0];
 
+      // --- RENDU DES GROUPES / POULES ---
+      if (tourney.groups.length === 0) {
+        groupsContainer.innerHTML = '';
+      } else {
+        const users = ['noah', 'nathan', 'liam'];
+        
+        groupsContainer.innerHTML = tourney.groups.map(g => {
+          const isFinished = !!g.realRanking;
+          const userProno = g.predictions[currentUser] || g.teams;
+          const qualCount = g.qualifiersCount || 2;
+
+          const groupTableCols = users.map(u => {
+            const isUser = (u === currentUser);
+            const showList = isUser || isFinished;
+            const uList = g.predictions[u] || g.teams;
+
+            return `
+              <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 flex-1 min-w-[200px]">
+                <div class="text-xs font-bold mb-2 text-center border-b border-gray-800 pb-1 ${isUser ? 'text-cyan-400' : 'text-gray-400'}">
+                  ${u.toUpperCase()} ${u === 'noah' ? '🥇' : ''}
+                </div>
+                ${!showList ? `<div class="text-center py-6 text-xl">🔒</div>` : `
+                  <div class="space-y-1">
+                    ${uList.map((team, idx) => {
+                      const evalR = evaluateTeamGroupRank(team, uList, g.realRanking, qualCount);
+                      const isQual = idx < qualCount;
+
+                      return `
+                        <div class="flex items-center justify-between px-2 py-1.5 rounded text-xs border ${isFinished ? evalR.colorClass : (isQual ? 'bg-cyan-950/40 border-cyan-800/50 text-cyan-200' : 'bg-gray-800/60 border-gray-700 text-gray-300')}">
+                          <span class="font-bold flex items-center gap-2">
+                            <span class="text-[10px] opacity-60">${idx + 1}.</span> ${team}
+                          </span>
+                          ${(isUser && !isFinished) ? `
+                            <div class="flex gap-1">
+                              <button onclick="moveTeamInList(tournaments.find(t=>t.id==='${tourney.id}').groups.find(gr=>gr.id==='${g.id}'), '${u}',${idx}, -1)" class="px-1.5 py-0.5 bg-gray-700 hover:bg-cyan-600 rounded text-[10px]"><i class="fa-solid fa-chevron-up"></i></button>
+                              <button onclick="moveTeamInList(tournaments.find(t=>t.id==='${tourney.id}').groups.find(gr=>gr.id==='${g.id}'), '${u}',${idx}, 1)" class="px-1.5 py-0.5 bg-gray-700 hover:bg-cyan-600 rounded text-[10px]"><i class="fa-solid fa-chevron-down"></i></button>
+                            </div>
+                          ` : ''}
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                `}
+              </div>
+            `;
+          }).join('');
+
+          // Vrai Classement Admin
+          const realAdminList = g.realRanking || g.teams;
+          const adminRealCol = isAdmin() ? `
+            <div class="bg-amber-950/20 border border-amber-500/40 rounded-xl p-3 min-w-[220px]">
+              <div class="text-xs font-bold mb-2 text-center text-amber-400 border-b border-amber-500/30 pb-1">
+                🏆 Vrai Classement (Admin)
+              </div>
+              <div class="space-y-1">
+                ${realAdminList.map((team, idx) => `
+                  <div class="flex items-center justify-between px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-xs">
+                    <span class="font-bold"><span class="text-[10px] text-amber-400 font-bold">${idx + 1}.</span>${team}</span>
+                    <div class="flex gap-1">
+                      <button onclick="moveTeamInList(tournaments.find(t=>t.id==='${tourney.id}').groups.find(gr=>gr.id==='${g.id}'), 'REAL_ADMIN',${idx}, -1)" class="px-1.5 py-0.5 bg-gray-800 hover:bg-amber-600 rounded text-[10px]"><i class="fa-solid fa-chevron-up"></i></button>
+                      <button onclick="moveTeamInList(tournaments.find(t=>t.id==='${tourney.id}').groups.find(gr=>gr.id==='${g.id}'), 'REAL_ADMIN',${idx}, 1)" class="px-1.5 py-0.5 bg-gray-800 hover:bg-amber-600 rounded text-[10px]"><i class="fa-solid fa-chevron-down"></i></button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : '';
+
+          return `
+            <div class="bg-rlCard border border-gray-800 rounded-2xl p-4 shadow-xl">
+              <div class="flex justify-between items-center mb-4">
+                <h4 class="font-bold text-lg text-cyan-400 flex items-center gap-2">
+                  <i class="fa-solid fa-layer-group"></i> ${g.name}
+                  <span class="text-xs font-normal text-gray-400">(${qualCount} Qualifiés)</span>
+                </h4>
+                ${isAdmin() ? `
+                  <button onclick="deleteGroup('${g.id}')" class="text-xs text-rose-400 hover:underline"><i class="fa-solid fa-trash"></i> Supprimer Poule</button>
+                ` : ''}
+              </div>
+
+              <div class="flex flex-wrap gap-4 items-start">
+                ${groupTableCols}
+                ${adminRealCol}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // --- RENDU DES MATCHS ---
       if (tourney.matches.length === 0) {
-        container.innerHTML = `<div class="bg-rlCard border border-gray-800 rounded-xl p-8 text-center text-gray-400">Aucun match dans ce tournoi.</div>`;
+        matchesContainer.innerHTML = `<div class="bg-rlCard border border-gray-800 rounded-xl p-8 text-center text-gray-400">Aucun match.</div>`;
         return;
       }
 
-      container.innerHTML = tourney.matches.map(m => {
+      matchesContainer.innerHTML = tourney.matches.map(m => {
         const users = ['noah', 'nathan', 'liam'];
         const isFinished = !!m.realScore;
 
         const inputsHtml = users.map(u => {
           const evalP = evaluatePrediction(m.predictions[u], m.realScore);
           const isUser = (u === currentUser);
-          
           const showProno = isUser || isFinished;
           const displayValue = showProno ? (m.predictions[u] || '') : '🔒';
 
@@ -550,7 +694,6 @@
               </div>
             </div>
 
-            <!-- Score Réel & Supprimer -->
             <div class="flex items-center gap-3">
               <div class="flex items-center gap-2 bg-gray-900 px-3 py-1.5 rounded-lg border border-gray-800">
                 <span class="text-xs text-gray-400 font-bold">Résultat :</span>
@@ -561,7 +704,7 @@
               </div>
 
               ${isAdmin() ? `
-                <button onclick="deleteMatch('${m.id}')" class="text-gray-500 hover:text-rose-500 transition p-1.5" title="Supprimer le match">
+                <button onclick="deleteMatch('${m.id}')" class="text-gray-500 hover:text-rose-500 transition p-1.5">
                   <i class="fa-solid fa-trash-can"></i>
                 </button>
               ` : ''}
@@ -576,11 +719,25 @@
     function calculateCurrentTotals() {
       let totals = { noah: 0, nathan: 0, liam: 0 };
       tournaments.forEach(t => {
+        // Matchs
         t.matches.forEach(m => {
           if (m.realScore) {
             totals.noah += evaluatePrediction(m.predictions.noah, m.realScore).pts;
             totals.nathan += evaluatePrediction(m.predictions.nathan, m.realScore).pts;
             totals.liam += evaluatePrediction(m.predictions.liam, m.realScore).pts;
+          }
+        });
+        // Groupes
+        t.groups.forEach(g => {
+          if (g.realRanking) {
+            ['noah', 'nathan', 'liam'].forEach(u => {
+              const uRank = g.predictions[u];
+              if (uRank) {
+                uRank.forEach(team => {
+                  totals[u] += evaluateTeamGroupRank(team, uRank, g.realRanking, g.qualifiersCount).pts;
+                });
+              }
+            });
           }
         });
       });
@@ -602,32 +759,24 @@
     function renderHistory() {
       const select = document.getElementById('history-season-select');
       const container = document.getElementById('history-container');
-      
-      if (!historySeasons || historySeasons.length === 0) {
-        container.innerHTML = `<div class="text-center text-gray-400 py-8">Aucun historique disponible.</div>`;
-        return;
-      }
+      if (!historySeasons || historySeasons.length === 0) return;
 
       const season = historySeasons[select.value || 0];
       const scores = season.scores || {};
-
       const sorted = Object.keys(scores).map(u => ({ user: u, pts: scores[u] })).sort((a,b) => b.pts - a.pts);
 
       container.innerHTML = `
         <div class="bg-rlCard border border-gray-800 rounded-2xl p-6 shadow-xl max-w-xl mx-auto text-center">
           <h3 class="text-lg font-bold text-amber-400 mb-6">${season.season_name}</h3>
           <div class="flex justify-center items-end gap-4">
-            <!-- 2ème place -->
             <div class="w-1/3">
               <span class="font-bold text-gray-300 capitalize">${sorted[1]?.user || '-'}</span> (${sorted[1]?.pts || 0} pts)
               <div class="bg-gray-700 h-24 rounded-t-lg mt-2 flex items-center justify-center font-bold text-xl">2</div>
             </div>
-            <!-- 1ère place -->
             <div class="w-1/3">
               <span class="font-bold text-yellow-400 capitalize">${sorted[0]?.user || '-'} 🥇</span> (${sorted[0]?.pts || 0} pts)
               <div class="bg-yellow-600/30 border-t-2 border-yellow-400 h-36 rounded-t-lg mt-2 flex items-center justify-center font-bold text-2xl text-yellow-400">1</div>
             </div>
-            <!-- 3ème place -->
             <div class="w-1/3">
               <span class="font-bold text-gray-300 capitalize">${sorted[2]?.user || '-'}</span> (${sorted[2]?.pts || 0} pts)
               <div class="bg-gray-800 h-16 rounded-t-lg mt-2 flex items-center justify-center font-bold text-lg text-amber-600">3</div>
@@ -640,17 +789,15 @@
     async function archiveCurrentSeason() {
       if (currentUser !== 'noah') return;
       const seasonName = document.getElementById('archive-season-name').value.trim();
-      if (!seasonName) return alert("Veuillez entrer un nom de saison (ex: Saison 2026)");
+      if (!seasonName) return alert("Nom de saison requis");
 
-      if (!confirm(`Voulez-vous vraiment clôturer la saison actuelle et l'enregistrer sous "${seasonName}" ? Les tournois actuels seront réinitialisés.`)) return;
+      if (!confirm(`Archiver sous "${seasonName}" et réinitialiser ?`)) return;
 
       const currentTotals = calculateCurrentTotals();
+      await db.from('history_seasons').insert([{ season_name: seasonName, scores: currentTotals }]);
 
-      await db.from('history_seasons').insert([{
-        season_name: seasonName,
-        scores: currentTotals
-      }]);
-
+      await db.from('group_predictions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await db.from('tournament_groups').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await db.from('predictions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await db.from('matches').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await db.from('tournaments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -658,31 +805,23 @@
       document.getElementById('archive-season-name').value = '';
       await loadTournaments();
       await loadHistory();
-      alert("Saison archivée avec succès ! La nouvelle saison est prête.");
+      alert("Saison archivée avec succès !");
     }
 
     function updateAdminSelects() {
       const tourneySelect = document.getElementById('tournament-select');
       const adminSelect = document.getElementById('admin-tournament-select');
-      
-      const currentTourneyVal = tourneySelect ? tourneySelect.value : null;
-      const currentAdminVal = adminSelect ? adminSelect.value : null;
+      const adminGroupSelect = document.getElementById('admin-group-tournament-select');
 
+      const currentVal = tourneySelect ? tourneySelect.value : null;
       const optionsHtml = tournaments.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-      
+
       if (tourneySelect) {
         tourneySelect.innerHTML = optionsHtml || '<option>Aucun tournoi</option>';
-        if (currentTourneyVal && tournaments.some(t => t.id === currentTourneyVal)) {
-          tourneySelect.value = currentTourneyVal;
-        }
+        if (currentVal && tournaments.some(t => t.id === currentVal)) tourneySelect.value = currentVal;
       }
-
-      if (adminSelect) {
-        adminSelect.innerHTML = optionsHtml || '<option>Créer un tournoi d\'abord</option>';
-        if (currentAdminVal && tournaments.some(t => t.id === currentAdminVal)) {
-          adminSelect.value = currentAdminVal;
-        }
-      }
+      if (adminSelect) adminSelect.innerHTML = optionsHtml || '<option>Créer un tournoi d\'abord</option>';
+      if (adminGroupSelect) adminGroupSelect.innerHTML = optionsHtml || '<option>Créer un tournoi d\'abord</option>';
     }
 
     initData();
