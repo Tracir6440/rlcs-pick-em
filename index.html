@@ -340,7 +340,6 @@
     async function loadHistory() {
       const { data } = await db.from('history_seasons').select('*').order('created_at', { ascending: false });
       
-      // Données par défaut si aucune saison enregistrée
       const defaultHistory = [
         {
           season_name: "Saison 2025",
@@ -429,7 +428,8 @@
     }
 
     async function addMatch() {
-      const tourneyId = document.getElementById('admin-tournament-select').value;
+      const tourneySelect = document.getElementById('admin-tournament-select');
+      const tourneyId = tourneySelect.value;
       const teamA = document.getElementById('team-a').value.trim();
       const teamB = document.getElementById('team-b').value.trim();
       const phase = document.getElementById('match-phase').value.trim() || 'Général';
@@ -449,6 +449,8 @@
         document.getElementById('team-a').value = '';
         document.getElementById('team-b').value = '';
         await loadTournaments();
+        // Conserver la sélection du tournoi dans l'admin après le rechargement
+        if (tourneySelect) tourneySelect.value = tourneyId;
         alert("Match ajouté !");
       }
     }
@@ -609,7 +611,6 @@
       const season = historySeasons[select.value || 0];
       const scores = season.scores || {};
 
-      // Trier les joueurs du score le plus élevé au plus bas
       const sorted = Object.keys(scores).map(u => ({ user: u, pts: scores[u] })).sort((a,b) => b.pts - a.pts);
 
       container.innerHTML = `
@@ -645,13 +646,11 @@
 
       const currentTotals = calculateCurrentTotals();
 
-      // Sauvegarder dans la table history_seasons
       await db.from('history_seasons').insert([{
         season_name: seasonName,
         scores: currentTotals
       }]);
 
-      // Supprimer les tournois/matchs/pronostics actuels pour repartir à zéro
       await db.from('predictions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await db.from('matches').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await db.from('tournaments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -665,9 +664,25 @@
     function updateAdminSelects() {
       const tourneySelect = document.getElementById('tournament-select');
       const adminSelect = document.getElementById('admin-tournament-select');
+      
+      const currentTourneyVal = tourneySelect ? tourneySelect.value : null;
+      const currentAdminVal = adminSelect ? adminSelect.value : null;
+
       const optionsHtml = tournaments.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-      tourneySelect.innerHTML = optionsHtml || '<option>Aucun tournoi</option>';
-      adminSelect.innerHTML = optionsHtml || '<option>Créer un tournoi d\'abord</option>';
+      
+      if (tourneySelect) {
+        tourneySelect.innerHTML = optionsHtml || '<option>Aucun tournoi</option>';
+        if (currentTourneyVal && tournaments.some(t => t.id === currentTourneyVal)) {
+          tourneySelect.value = currentTourneyVal;
+        }
+      }
+
+      if (adminSelect) {
+        adminSelect.innerHTML = optionsHtml || '<option>Créer un tournoi d\'abord</option>';
+        if (currentAdminVal && tournaments.some(t => t.id === currentAdminVal)) {
+          adminSelect.value = currentAdminVal;
+        }
+      }
     }
 
     initData();
