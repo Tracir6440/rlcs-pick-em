@@ -36,10 +36,10 @@
         </div>
       </div>
 
-      <!-- SÉLECTEUR DE COMPTE -->
+      <!-- SÉLECTEUR DE JOUEUR -->
       <div class="flex items-center gap-2 bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-800 text-xs">
-        <span class="text-gray-400">Joueur :</span>
-        <select id="user-session" onchange="changeUserSession(this.value)" class="bg-rlCard text-cyan-400 font-bold focus:outline-none cursor-pointer">
+        <span class="text-gray-400">Changer de joueur :</span>
+        <select id="user-session" onchange="changeUserSession(this.value)" class="bg-rlCard text-cyan-400 font-bold focus:outline-none cursor-pointer p-1 rounded">
           <option value="noah">Noah (Master Admin 🥇)</option>
           <option value="nathan">Nathan</option>
           <option value="liam">Liam</option>
@@ -67,7 +67,7 @@
   <!-- MAIN CONTENT -->
   <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
 
-    <!-- LÉGENDE DES COULEURS -->
+    <!-- LÉGENDE -->
     <div class="bg-rlCard border border-gray-800 rounded-xl p-3 mb-6 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm">
       <span class="font-bold text-gray-400 flex items-center gap-1">
         <i class="fa-solid fa-circle-info"></i> Barème des points :
@@ -93,7 +93,7 @@
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h2 class="text-2xl font-bold">Pronostics des Matchs</h2>
-          <p class="text-sm text-gray-400">Les pronostics des autres joueurs restent masqués tant que le résultat du match n'est pas saisi !</p>
+          <p class="text-sm text-gray-400">Pronostics masqués tant que le résultat n'est pas saisi !</p>
         </div>
         <select id="tournament-select" onchange="renderMatches()" class="bg-rlCard border border-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-cyan-500 font-semibold">
         </select>
@@ -141,12 +141,12 @@
     <section id="sec-admin" class="tab-content hidden">
       <h2 class="text-2xl font-bold mb-4 text-cyan-400"><i class="fa-solid fa-user-shield"></i> Panneau d'Administration</h2>
       
-      <!-- GESTION DES PERMISSIONS TEMPORAIRES -->
+      <!-- DÉLÉGATION MASTER ADMIN -->
       <div id="master-admin-controls" class="bg-rlCard border border-cyan-500/40 rounded-xl p-5 mb-6 shadow-lg">
         <h3 class="font-bold text-lg mb-2 text-white flex items-center gap-2">
-          <i class="fa-solid fa-key text-amber-400"></i> Déléguer l'accès Admin (Master Only)
+          <i class="fa-solid fa-key text-amber-400"></i> Déléguer l'accès Admin (Noah Only)
         </h3>
-        <p class="text-xs text-gray-400 mb-4">Accorder une autorisation temporaire à un autre joueur pour gérer les résultats et tournois.</p>
+        <p class="text-xs text-gray-400 mb-4">Accorder une autorisation temporaire à un autre joueur.</p>
         
         <div class="flex flex-wrap gap-3 items-center">
           <select id="grant-user" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
@@ -193,34 +193,35 @@
   </main>
 
   <script>
-    // Configuration Supabase
     const SUPABASE_URL = "https://urmhcaqgftxzkoxabyqi.supabase.co";
     const SUPABASE_KEY = "sb_publishable_urpGA_JF8IUf-35Dg2E-Og_-NS4aK";
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let currentUser = 'noah';
+    let currentUser = localStorage.getItem('rlcs_user') || 'noah';
+    document.getElementById('user-session').value = currentUser;
+
     let tournaments = [];
     let adminPermissions = {};
 
     async function initData() {
-      await loadTournaments();
       await loadAdminPermissions();
+      await loadTournaments();
       updateAdminVisibility();
     }
 
     async function loadTournaments() {
-      const { data: tourneys } = await db.from('tournaments').select('*').order('created_at', { ascending: true });
-      const { data: matches } = await db.from('matches').select('*').order('created_at', { ascending: true });
-      const { data: predictions } = await db.from('predictions').select('*');
+      const { data: tourneys, error: err1 } = await db.from('tournaments').select('*').order('created_at', { ascending: true });
+      const { data: matches, error: err2 } = await db.from('matches').select('*').order('created_at', { ascending: true });
+      const { data: predictions, error: err3 } = await db.from('predictions').select('*');
+
+      if (err1 || err2 || err3) console.error("Erreur chargement:", err1 || err2 || err3);
 
       tournaments = (tourneys || []).map(t => {
         const tMatches = (matches || []).filter(m => m.tournament_id === t.id).map(m => {
           const mPreds = { noah: '', nathan: '', liam: '' };
-          const mLocks = { noah: false, nathan: false, liam: false };
           
           (predictions || []).filter(p => p.match_id === m.id).forEach(p => {
             mPreds[p.user_name] = p.score_pred;
-            mLocks[p.user_name] = p.locked;
           });
 
           return {
@@ -229,8 +230,7 @@
             teamA: m.team_a,
             teamB: m.team_b,
             realScore: m.real_score,
-            predictions: mPreds,
-            locked: mLocks
+            predictions: mPreds
           };
         });
 
@@ -277,6 +277,7 @@
 
     function changeUserSession(user) {
       currentUser = user;
+      localStorage.setItem('rlcs_user', user);
       updateAdminVisibility();
       renderMatches();
     }
@@ -289,7 +290,7 @@
       await db.from('admin_permissions').upsert({ user_name: user, expires_at: expiresAt });
       await loadAdminPermissions();
       updateAdminVisibility();
-      alert(`Accès admin accordé à ${user.toUpperCase()} pour ${hours}h !`);
+      alert(`Permission accordée à ${user.toUpperCase()} pour ${hours}h !`);
     }
 
     function switchTab(tabId) {
@@ -308,11 +309,16 @@
     async function addTournament() {
       const input = document.getElementById('new-tournament-name');
       const name = input.value.trim();
-      if (!name) return;
+      if (!name) return alert("Entrez un nom de tournoi");
 
-      await db.from('tournaments').insert({ name: name });
-      input.value = '';
-      await loadTournaments();
+      const { error } = await db.from('tournaments').insert([{ name: name }]);
+      if (error) {
+        alert("Erreur lors de la création : " + error.message);
+      } else {
+        input.value = '';
+        await loadTournaments();
+        alert("Tournoi créé avec succès !");
+      }
     }
 
     async function addMatch() {
@@ -321,18 +327,23 @@
       const teamB = document.getElementById('team-b').value.trim();
       const phase = document.getElementById('match-phase').value.trim() || 'Général';
 
-      if (!tourneyId || !teamA || !teamB) return;
+      if (!tourneyId || !teamA || !teamB) return alert("Remplissez les équipes");
 
-      await db.from('matches').insert({
+      const { error } = await db.from('matches').insert([{
         tournament_id: tourneyId,
         phase: phase,
         team_a: teamA,
         team_b: teamB
-      });
+      }]);
 
-      document.getElementById('team-a').value = '';
-      document.getElementById('team-b').value = '';
-      await loadTournaments();
+      if (error) {
+        alert("Erreur lors de l'ajout du match : " + error.message);
+      } else {
+        document.getElementById('team-a').value = '';
+        document.getElementById('team-b').value = '';
+        await loadTournaments();
+        alert("Match ajouté !");
+      }
     }
 
     async function setPrediction(matchId, user, score) {
@@ -396,7 +407,6 @@
           const evalP = evaluatePrediction(m.predictions[u], m.realScore);
           const isUser = (u === currentUser);
           
-          // Pronostic visible uniquement si : c'est le joueur connecté OU le match est terminé
           const showProno = isUser || isFinished;
           const displayValue = showProno ? (m.predictions[u] || '') : '🔒';
 
@@ -461,7 +471,6 @@
       adminSelect.innerHTML = optionsHtml || '<option>Créer un tournoi d\'abord</option>';
     }
 
-    // Lancement de l'application
     initData();
   </script>
 </body>
