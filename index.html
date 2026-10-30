@@ -216,11 +216,23 @@
       <!-- CRÉER TOURNOI, GROUPE & MATCHS -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- 1. Tournoi -->
-        <div class="bg-rlCard border border-gray-800 rounded-xl p-5">
-          <h3 class="font-bold text-lg mb-3">1. Nouveau tournoi</h3>
-          <div class="flex gap-2">
-            <input type="text" id="new-tournament-name" placeholder="Ex: Major Paris..." class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm w-full">
-            <button onclick="addTournament()" class="bg-cyan-600 hover:bg-cyan-500 font-bold px-4 py-2 rounded-lg text-sm">Créer</button>
+        <div class="bg-rlCard border border-gray-800 rounded-xl p-5 flex flex-col justify-between">
+          <div>
+            <h3 class="font-bold text-lg mb-3">1. Tournoi</h3>
+            <div class="space-y-2 mb-4">
+              <input type="text" id="new-tournament-name" placeholder="Ex: Major Paris..." class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm w-full">
+              <button onclick="addTournament()" class="w-full bg-cyan-600 hover:bg-cyan-500 font-bold py-2 rounded-lg text-sm">Créer le tournoi</button>
+            </div>
+          </div>
+          <!-- Suppression de tournoi -->
+          <div class="border-t border-gray-800 pt-3">
+            <label class="block text-xs font-semibold text-gray-400 mb-1">Supprimer un tournoi :</label>
+            <div class="flex gap-2">
+              <select id="admin-delete-tournament-select" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-white"></select>
+              <button onclick="deleteTournament()" class="bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-600/40 px-3 py-1.5 rounded-lg text-xs transition" title="Supprimer le tournoi">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -230,7 +242,7 @@
           <div class="space-y-2">
             <select id="admin-group-tournament-select" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm"></select>
             <input type="text" id="group-name" placeholder="Nom du groupe (ex: Groupe A)" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm">
-            <input type="text" id="group-teams" placeholder="Équipes séparées par des virgules (ex: KC, FAL, SSG, MIBR)" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm">
+            <input type="text" id="group-teams" placeholder="Équipes (ex: KC, FAL, SSG, MIBR)" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm">
             <div class="flex items-center gap-2">
               <span class="text-xs text-gray-400">Nb Qualifiés :</span>
               <input type="number" id="group-qual-count" value="2" min="1" class="w-16 bg-gray-900 border border-gray-700 rounded-lg px-2 py-1 text-sm text-center">
@@ -424,6 +436,29 @@
       input.value = '';
       await loadTournaments();
       alert("Tournoi créé !");
+    }
+
+    async function deleteTournament() {
+      if (!isAdmin()) return;
+      const select = document.getElementById('admin-delete-tournament-select');
+      const tourneyId = select.value;
+      if (!tourneyId) return alert("Aucun tournoi sélectionné");
+
+      const tourneyObj = tournaments.find(t => t.id === tourneyId);
+      if (!confirm(`Voulez-vous vraiment supprimer le tournoi "${tourneyObj ? tourneyObj.name : ''}" ainsi que tous ses matchs et groupes associés ?`)) return;
+
+      for (let g of (tourneyObj?.groups || [])) {
+        await db.from('group_predictions').delete().eq('group_id', g.id);
+        await db.from('tournament_groups').delete().eq('id', g.id);
+      }
+      for (let m of (tourneyObj?.matches || [])) {
+        await db.from('predictions').delete().eq('match_id', m.id);
+        await db.from('matches').delete().eq('id', m.id);
+      }
+      await db.from('tournaments').delete().eq('id', tourneyId);
+
+      await loadTournaments();
+      alert("Tournoi supprimé avec succès !");
     }
 
     async function addGroup() {
@@ -820,6 +855,7 @@
       const tourneySelect = document.getElementById('tournament-select');
       const adminSelect = document.getElementById('admin-tournament-select');
       const adminGroupSelect = document.getElementById('admin-group-tournament-select');
+      const adminDeleteSelect = document.getElementById('admin-delete-tournament-select');
 
       const currentVal = tourneySelect ? tourneySelect.value : null;
       const optionsHtml = tournaments.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
@@ -830,6 +866,7 @@
       }
       if (adminSelect) adminSelect.innerHTML = optionsHtml || '<option>Créer un tournoi d\'abord</option>';
       if (adminGroupSelect) adminGroupSelect.innerHTML = optionsHtml || '<option>Créer un tournoi d\'abord</option>';
+      if (adminDeleteSelect) adminDeleteSelect.innerHTML = optionsHtml || '<option>Aucun tournoi</option>';
     }
 
     initData();
