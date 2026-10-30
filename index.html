@@ -206,7 +206,7 @@
         <p class="text-xs text-gray-400 mb-4">Sauvegarde le classement actuel dans l'Historique puis réinitialise pour la nouvelle saison.</p>
         
         <div class="flex flex-wrap gap-3 items-center">
-          <input type="text" id="archive-season-name" placeholder="Nom ex: Saison 2026" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+          <input type="text" id="archive-season-name" placeholder="Nom ex: Saison 2027" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
           <button onclick="archiveCurrentSeason()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2 rounded-lg text-sm transition">
             Archiver la saison
           </button>
@@ -259,7 +259,7 @@
 
   <script>
     const SUPABASE_URL = "https://urmhcaqgftxzkoxabyqi.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVybWhjYXFnZnR4emtveGFieXFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4MDYxOTUsImV4cCI6MjEwNTM4MjE5NX0.ToCVIUQpg4f3kyuL3zQTl2w1onV1Oo2qwQeHSRglOsQ"; 
+    const SUPABASE_KEY = "sb_publishable_urpGA_JF8IUf-35Dg2E-Og_-NS4aK"; 
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = localStorage.getItem('rlcs_logged_user') || null;
@@ -355,7 +355,19 @@
 
     async function loadHistory() {
       const { data } = await db.from('history_seasons').select('*').order('created_at', { ascending: false });
-      historySeasons = (data && data.length > 0) ? data : [{ season_name: "Saison 2025", scores: { nathan: 103.5, noah: 96, liam: 67 } }];
+      
+      const defaultHistory = [
+        {
+          season_name: "Saison 2026",
+          scores: { noah: 429, liam: 416, nathan: 277 }
+        },
+        {
+          season_name: "Saison 2025",
+          scores: { nathan: 103.5, noah: 96, liam: 67 }
+        }
+      ];
+
+      historySeasons = (data && data.length > 0) ? data : defaultHistory;
       renderHistorySelect();
       renderHistory();
     }
@@ -575,7 +587,6 @@
         
         groupsContainer.innerHTML = tourney.groups.map(g => {
           const isFinished = !!g.realRanking;
-          const userProno = g.predictions[currentUser] || g.teams;
           const qualCount = g.qualifiersCount || 2;
 
           const groupTableCols = users.map(u => {
@@ -601,8 +612,8 @@
                           </span>
                           ${(isUser && !isFinished) ? `
                             <div class="flex gap-1">
-                              <button onclick="moveTeamInList(tournaments.find(t=>t.id==='${tourney.id}').groups.find(gr=>gr.id==='${g.id}'), '${u}',${idx}, -1)" class="px-1.5 py-0.5 bg-gray-700 hover:bg-cyan-600 rounded text-[10px]"><i class="fa-solid fa-chevron-up"></i></button>
-                              <button onclick="moveTeamInList(tournaments.find(t=>t.id==='${tourney.id}').groups.find(gr=>gr.id==='${g.id}'), '${u}',${idx}, 1)" class="px-1.5 py-0.5 bg-gray-700 hover:bg-cyan-600 rounded text-[10px]"><i class="fa-solid fa-chevron-down"></i></button>
+                              <button onclick="moveTeamInList(tournaments.find(t=>t.id==='${tourney.id}').groups.find(gr=>gr.id==='${g.id}'), '${u}', ${idx}, -1)" class="px-1.5 py-0.5 bg-gray-700 hover:bg-cyan-600 rounded text-[10px]"><i class="fa-solid fa-chevron-up"></i></button>
+                              <button onclick="moveTeamInList(tournaments.find(t=>t.id==='${tourney.id}').groups.find(gr=>gr.id==='${g.id}'), '${u}', ${idx}, 1)" class="px-1.5 py-0.5 bg-gray-700 hover:bg-cyan-600 rounded text-[10px]"><i class="fa-solid fa-chevron-down"></i></button>
                             </div>
                           ` : ''}
                         </div>
@@ -614,7 +625,6 @@
             `;
           }).join('');
 
-          // Vrai Classement Admin
           const realAdminList = g.realRanking || g.teams;
           const adminRealCol = isAdmin() ? `
             <div class="bg-amber-950/20 border border-amber-500/40 rounded-xl p-3 min-w-[220px]">
@@ -624,10 +634,10 @@
               <div class="space-y-1">
                 ${realAdminList.map((team, idx) => `
                   <div class="flex items-center justify-between px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-xs">
-                    <span class="font-bold"><span class="text-[10px] text-amber-400 font-bold">${idx + 1}.</span>${team}</span>
+                    <span class="font-bold"><span class="text-[10px] text-amber-400 font-bold">${idx + 1}.</span> ${team}</span>
                     <div class="flex gap-1">
-                      <button onclick="moveTeamInList(tournaments.find(t=>t.id==='${tourney.id}').groups.find(gr=>gr.id==='${g.id}'), 'REAL_ADMIN',${idx}, -1)" class="px-1.5 py-0.5 bg-gray-800 hover:bg-amber-600 rounded text-[10px]"><i class="fa-solid fa-chevron-up"></i></button>
-                      <button onclick="moveTeamInList(tournaments.find(t=>t.id==='${tourney.id}').groups.find(gr=>gr.id==='${g.id}'), 'REAL_ADMIN',${idx}, 1)" class="px-1.5 py-0.5 bg-gray-800 hover:bg-amber-600 rounded text-[10px]"><i class="fa-solid fa-chevron-down"></i></button>
+                      <button onclick="moveTeamInList(tournaments.find(t=>t.id==='${tourney.id}').groups.find(gr=>gr.id==='${g.id}'), 'REAL_ADMIN', ${idx}, -1)" class="px-1.5 py-0.5 bg-gray-800 hover:bg-amber-600 rounded text-[10px]"><i class="fa-solid fa-chevron-up"></i></button>
+                      <button onclick="moveTeamInList(tournaments.find(t=>t.id==='${tourney.id}').groups.find(gr=>gr.id==='${g.id}'), 'REAL_ADMIN', ${idx}, 1)" class="px-1.5 py-0.5 bg-gray-800 hover:bg-amber-600 rounded text-[10px]"><i class="fa-solid fa-chevron-down"></i></button>
                     </div>
                   </div>
                 `).join('')}
@@ -719,7 +729,6 @@
     function calculateCurrentTotals() {
       let totals = { noah: 0, nathan: 0, liam: 0 };
       tournaments.forEach(t => {
-        // Matchs
         t.matches.forEach(m => {
           if (m.realScore) {
             totals.noah += evaluatePrediction(m.predictions.noah, m.realScore).pts;
@@ -727,7 +736,6 @@
             totals.liam += evaluatePrediction(m.predictions.liam, m.realScore).pts;
           }
         });
-        // Groupes
         t.groups.forEach(g => {
           if (g.realRanking) {
             ['noah', 'nathan', 'liam'].forEach(u => {
