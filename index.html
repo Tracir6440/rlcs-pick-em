@@ -139,26 +139,12 @@
     </section>
 
     <!-- SECTION CLASSEMENT -->
-    <section id="sec-leaderboard" class="tab-content hidden">
-      <h2 class="text-2xl font-bold mb-4">Classement Général - Saison en cours</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div class="bg-rlCard border border-yellow-500/30 rounded-2xl p-5 text-center relative overflow-hidden shadow-lg">
-          <div class="text-3xl mb-1">🥇</div>
-          <div class="font-bold text-xl">Noah</div>
-          <div id="score-noah" class="text-3xl font-black text-cyan-400 mt-2">0 pts</div>
-        </div>
-        <div class="bg-rlCard border border-gray-800 rounded-2xl p-5 text-center shadow-lg">
-          <div class="text-3xl mb-1">🥈</div>
-          <div class="font-bold text-xl">Nathan</div>
-          <div id="score-nathan" class="text-3xl font-black text-cyan-400 mt-2">0 pts</div>
-        </div>
-        <div class="bg-rlCard border border-gray-800 rounded-2xl p-5 text-center shadow-lg">
-          <div class="text-3xl mb-1">🥉</div>
-          <div class="font-bold text-xl">Liam</div>
-          <div id="score-liam" class="text-3xl font-black text-cyan-400 mt-2">0 pts</div>
-        </div>
-      </div>
-    </section>
+<section id="sec-leaderboard" class="tab-content hidden">
+  <h2 class="text-2xl font-bold mb-4">Classement Général - Saison en cours</h2>
+  <div id="leaderboard-cards-container" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <!-- Les cartes des joueurs seront générées dynamiquement dans l'ordre des points -->
+  </div>
+</section>
 
     <!-- SECTION HISTORIQUE -->
     <section id="sec-history" class="tab-content hidden">
@@ -788,11 +774,44 @@
     }
 
     function updateLeaderboard() {
-      const totals = calculateCurrentTotals();
-      document.getElementById('score-noah').innerText = totals.noah + ' pts';
-      document.getElementById('score-nathan').innerText = totals.nathan + ' pts';
-      document.getElementById('score-liam').innerText = totals.liam + ' pts';
-    }
+  const totals = calculateCurrentTotals();
+  const container = document.getElementById('leaderboard-cards-container');
+  if (!container) return;
+
+  // Configuration des joueurs
+  const players = [
+    { key: 'noah', name: 'Noah', isMaster: true },
+    { key: 'nathan', name: 'Nathan', isMaster: false },
+    { key: 'liam', name: 'Liam', isMaster: false }
+  ];
+
+  // Association des points et tri décroissant
+  const sortedPlayers = players.map(p => ({
+    ...p,
+    pts: totals[p.key] || 0
+  })).sort((a, b) => b.pts - a.pts);
+
+  // Médailles et bordures selon le rang
+  const rankBadges = ['🥇', '🥈', '🥉'];
+  const rankBorders = [
+    'border-yellow-500/50 shadow-yellow-500/10',
+    'border-gray-400/40',
+    'border-amber-700/40'
+  ];
+
+  // Génération dynamique des cartes dans le bon ordre
+  container.innerHTML = sortedPlayers.map((p, index) => `
+    <div class="bg-rlCard border ${rankBorders[index] || 'border-gray-800'} rounded-2xl p-5 text-center relative overflow-hidden shadow-lg transition-all duration-300">
+      <div class="text-3xl mb-1">${rankBadges[index] || '🎮'}</div>
+      <div class="font-bold text-xl text-white">
+        ${p.name} ${p.isMaster ? '🥇' : ''}
+      </div>
+      <div class="text-3xl font-black text-cyan-400 mt-2">
+        ${p.pts} pts
+      </div>
+    </div>
+  `).join('');
+}
 
     function renderHistorySelect() {
       const select = document.getElementById('history-season-select');
